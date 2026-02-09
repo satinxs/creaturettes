@@ -36,12 +36,17 @@
 /// FUN BEGINS HERE !
 //////////////////////////////////////////////////////////
 
-#define CELL_COUNT 1000
+// Static Globals
+#define CELL_COUNT 2500
+#define TIME_COEF 2
+#define FPS_COEF 2
 
+// Structs
 typedef struct {
     Vector2 pos;
     Vector2 vel;
     float rad;
+    bool is_colliding;
 } Cell;
 
 typedef struct {
@@ -49,16 +54,29 @@ typedef struct {
 } CellGroup;
 
 bool draw_cell(Cell c) {
-    DrawCircleV(c.pos, c.rad, GREEN);
+    if (c.is_colliding) {
+        DrawCircleV(c.pos, c.rad, GOLD);
+    } else {
+        DrawCircleV(c.pos, c.rad, MAROON);
+    }
     return true;
 }
 
+// Globals
 CellGroup world = {0};
+Vector2 center = {
+    .x = 1920 / 2,
+    .y = 1080 / 2
+};
 
 bool game_init() {
+    // int W = GetScreenWidth();
+    // int H = GetScreenHeight();
+    int W = 1920;
+    int H = 1080;
     for (int i = 0; i < CELL_COUNT; i++) {
-        world.cells[i].pos.x = GetRandomValue(100, GetScreenWidth() - 100);
-        world.cells[i].pos.y = GetRandomValue(100, GetScreenHeight() - 100);
+        world.cells[i].pos.x = GetRandomValue(100, W - 100);
+        world.cells[i].pos.y = GetRandomValue(100, H - 100);
 
         world.cells[i].vel.x = GetRandomValue(-5.0f, 5.0f);
         world.cells[i].vel.y = GetRandomValue(-5.0f, 5.0f);
@@ -85,6 +103,52 @@ bool game_update() {
         c->pos.y += c->vel.y;
 
         // Collision detection w/Walls
+#define PEDO
+#ifdef PEDO
+        const float map_rad = 1920 / 2;
+
+        // if (Vector2Distance(c->pos, center) + c->rad > map_rad) {
+        //     // set position to the map circular border minus radius, making it touch the border
+        //     // set velocity to a mirror using the normal of the circular border pointing to our c->pos
+        // }
+
+        // AI
+        // Vector from Center to Ball
+        float dx = c->pos.x - center.x;
+        float dy = c->pos.y - center.y;
+
+        // Distance from center
+        float dist = sqrtf((dx*dx) + (dy*dy));
+
+        if (dist + c->rad > map_rad) {
+            // 1. Calculate Normal (Direction from Center to Ball)
+            float nx = dx / dist;
+            float ny = dy / dist;
+
+            // 2. Position Correction (Clamp to edge)
+            // The ball is too far out. Pull it back so it just touches the rim.
+            float touchDist = map_rad - c->rad;
+            c->pos.x = center.x + (nx * touchDist);
+            c->pos.y = center.y + (ny * touchDist);
+
+            // 3. Velocity Reflection (Bounce off the curved wall)
+            // Calculate velocity along normal (Radial Velocity)
+            float vDotN = (c->vel.x * nx) + (c->vel.y * ny);
+
+            // Only bounce if moving OUTWARD
+            if (vDotN > 0) {
+                // Apply bounce impulse (-2.0 is perfectly elastic)
+                float bounce = -2.0f * vDotN;
+                c->vel.x += bounce * nx;
+                c->vel.y += bounce * ny;
+
+                // Add a little friction/damping here if you want:
+                // c->vel.x *= 0.9f;
+            }
+        }
+
+#else
+        // Collision detection w/Walls
         if (c->pos.x - c->rad <= 0) {
             c->pos.x = c->rad;
             c->vel.x = -c->vel.x;
@@ -104,10 +168,14 @@ bool game_update() {
             c->pos.y = H - c->rad;
             c->vel.y = -c->vel.y;
         }
+#endif // PEDO
+        c->is_colliding = false;
 
         // Collision detection w/Cells
         for (int j = 0; j < CELL_COUNT; j++) {
             Cell *c2 = &world.cells[j];
+
+            if (i == j) continue; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
             // get distance squared
             float dx = c->pos.x - c2->pos.x;
@@ -120,6 +188,7 @@ bool game_update() {
 
             // check
             if (dist_squared < rad_sum_squared) {
+                c->is_colliding = true;
 
                 float dist = sqrtf(dist_squared);
                 if (dist == 0.0f) dist = 0.01f; // Avoid div by zero
@@ -215,16 +284,19 @@ bool game_update() {
                 // c2->vel.y -= iy;
             }
         }
-
-        // Draw
-        draw_cell(*c);
     }
 
     return true;
 }
 
-// int main(int argc, char **argv) {
-int main() {
+bool game_render() {
+    for (int i = 0; i < CELL_COUNT; i++) {
+        draw_cell(world.cells[i]);
+    }
+    return true;
+}
+
+int main(int argc, char **argv) {
     printf("Hello, World\n");
 
     Cmd cmd = {0};
@@ -250,7 +322,7 @@ int main() {
     int screenX = 1280;
     int screenY = 720;
     InitWindow(screenX, screenY, "rl");
-    SetTargetFPS(60);
+    SetTargetFPS(FPS_COEF * 60);
     SetExitKey(KEY_ESCAPE);
     // ToggleFullscreen();
     // WaitTime(1.0);
@@ -259,17 +331,29 @@ int main() {
     game_init();
     bool gogo = false;
 
+    int cycle_pos = 0;
+
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(DARKGRAY);
+        ClearBackground(DARKBROWN);
 
-        if (IsKeyPressed(KEY_F11) || ( IsKeyPressed(KEY_ENTER) && IsKeyDown(KEY_LEFT_ALT) )) {
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_F11) || ( IsKeyPressed(KEY_ENTER) && IsKeyDown(KEY_LEFT_ALT) )) {
             gogo = !gogo;
             ToggleBorderlessWindowed();
         }
 
+        if (IsKeyPressed(KEY_F)) {
+            for (int i = 0; i < 1000; i++) {
+                game_update();
+            }
+        }
+
         if (gogo) {
-            game_update(); // GAME !
+            cycle_pos += 1;
+            cycle_pos %= TIME_COEF;
+
+            if (cycle_pos == 0) game_update(); // GAME !
+            game_render();
         }
 
         DrawText("creaturettes", 30, 30, 20, GREEN);
