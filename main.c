@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// // #!/usr/bin/env -S tcc -run
+// #!/usr/bin/env -S tcc -run
 
 // #include <stdio.h>
 
@@ -36,38 +36,73 @@
 /// FUN BEGINS HERE !
 //////////////////////////////////////////////////////////
 
-// Static Globals
-#define CELL_COUNT 2500
-#define TIME_COEF 2
-#define FPS_COEF 2
+/// Static Globals
 
-// Structs
+#define CELL_COUNT 2500
+#define FPS_COEF 2
+#define TIME_COEF 2
+#define MAP_CIRCULAR_SIZE (1920 / 2)
+
+/// Structs
+
 typedef struct {
-    Vector2 pos;
-    Vector2 vel;
     float rad;
-    bool is_colliding;
+    bool is_colliding_w_cell;
 } Cell;
 
 typedef struct {
-    Cell cells[CELL_COUNT];
-} CellGroup;
+} Bush;
 
-bool draw_cell(Cell c) {
-    if (c.is_colliding) {
-        DrawCircleV(c.pos, c.rad, GOLD);
+typedef struct {
+} Tree;
+
+typedef struct {
+} Animal;
+
+/// Fat struct
+
+typedef enum {
+    K_INIT = 0,
+    K_CELL,
+    K_BUSH,
+    K_TREE,
+    K_ANIMAL,
+} Kind;
+
+typedef struct {
+    Vector2 pos;
+    Vector2 vel;
+    Kind kind;
+    union {
+        Cell cell;
+        Bush bush;
+        Tree tree;
+        Animal animal;
+    } as;
+} FatStruct;
+
+typedef struct {
+    FatStruct cells[CELL_COUNT];
+} World;
+
+/// Dynamic Globals
+
+World world = {0};
+Vector2 center = {
+    .x = 1920 / 2,
+    .y = 1080 / 2,
+};
+
+/// Functions
+
+bool draw_cell(FatStruct c) {
+    if (c.as.cell.is_colliding_w_cell) {
+        DrawCircleV(c.pos, c.as.cell.rad, GOLD);
     } else {
-        DrawCircleV(c.pos, c.rad, MAROON);
+        DrawCircleV(c.pos, c.as.cell.rad, MAROON);
     }
     return true;
 }
-
-// Globals
-CellGroup world = {0};
-Vector2 center = {
-    .x = 1920 / 2,
-    .y = 1080 / 2
-};
 
 bool game_init() {
     // int W = GetScreenWidth();
@@ -75,28 +110,26 @@ bool game_init() {
     int W = 1920;
     int H = 1080;
     for (int i = 0; i < CELL_COUNT; i++) {
-        world.cells[i].pos.x = GetRandomValue(100, W - 100);
-        world.cells[i].pos.y = GetRandomValue(100, H - 100);
+        FatStruct *c = &world.cells[i];
 
-        world.cells[i].vel.x = GetRandomValue(-5.0f, 5.0f);
-        world.cells[i].vel.y = GetRandomValue(-5.0f, 5.0f);
+        c->pos.x = GetRandomValue(100, W - 100);
+        c->pos.y = GetRandomValue(100, H - 100);
 
-        world.cells[i].rad = GetRandomValue(1, 20);
+        c->vel.x = GetRandomValue(-5.0f, 5.0f);
+        c->vel.y = GetRandomValue(-5.0f, 5.0f);
+
+        c->as.cell.rad = GetRandomValue(1, 20);
     }
 
     return true;
 }
 
-//////////////////////////////////////////////////////////
-/// Game Update Loop!
-//////////////////////////////////////////////////////////
-
 bool game_update() {
-    int W = GetScreenWidth();
-    int H = GetScreenHeight();
+    // int W = GetScreenWidth();
+    // int H = GetScreenHeight();
 
     for (int i = 0; i < CELL_COUNT; i++) {
-        Cell *c = &world.cells[i];
+        FatStruct *c = &world.cells[i];
 
         // Movement
         c->pos.x += c->vel.x;
@@ -120,14 +153,14 @@ bool game_update() {
         // Distance from center
         float dist = sqrtf((dx*dx) + (dy*dy));
 
-        if (dist + c->rad > map_rad) {
+        if (dist + c->as.cell.rad > map_rad) {
             // 1. Calculate Normal (Direction from Center to Ball)
             float nx = dx / dist;
             float ny = dy / dist;
 
             // 2. Position Correction (Clamp to edge)
             // The ball is too far out. Pull it back so it just touches the rim.
-            float touchDist = map_rad - c->rad;
+            float touchDist = map_rad - c->as.cell.rad;
             c->pos.x = center.x + (nx * touchDist);
             c->pos.y = center.y + (ny * touchDist);
 
@@ -169,11 +202,11 @@ bool game_update() {
             c->vel.y = -c->vel.y;
         }
 #endif // PEDO
-        c->is_colliding = false;
+        c->as.cell.is_colliding_w_cell = false;
 
         // Collision detection w/Cells
         for (int j = 0; j < CELL_COUNT; j++) {
-            Cell *c2 = &world.cells[j];
+            FatStruct *c2 = &world.cells[j];
 
             if (i == j) continue; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -183,12 +216,12 @@ bool game_update() {
 
             float dist_squared = (dx * dx) + (dy * dy);
 
-            float rad_sum = c->rad + c2->rad;
+            float rad_sum = c->as.cell.rad + c2->as.cell.rad;
             float rad_sum_squared = rad_sum * rad_sum;
 
             // check
             if (dist_squared < rad_sum_squared) {
-                c->is_colliding = true;
+                c->as.cell.is_colliding_w_cell = true;
 
                 float dist = sqrtf(dist_squared);
                 if (dist == 0.0f) dist = 0.01f; // Avoid div by zero
@@ -236,7 +269,6 @@ bool game_update() {
                 c->vel.y += iy;
                 c2->vel.x -= ix;
                 c2->vel.y -= iy;
-
 
                 // // --- SOLVER --- AI
 
@@ -296,15 +328,8 @@ bool game_render() {
     return true;
 }
 
-int main(int argc, char **argv) {
+int main(void) {
     printf("Hello, World\n");
-
-    Cmd cmd = {0};
-    #define C(...) cmd_append(&cmd, __VA_ARGS__);
-    #define RUN if (!cmd_run_sync_and_reset(&cmd)) return 1;
-
-    // C("ls", "-lA"); // test pwsh or bash as original callers. difference?
-    // RUN
 
 #ifdef RELEASE
     printf("Release!\n");
@@ -312,16 +337,9 @@ int main(int argc, char **argv) {
     printf("No Release!\n");
 #endif // RELEASE
 
-    _putenv_s("HOME", "foo");
-    const char *home = getenv("HOME");
-    printf("Here's your $HOME: %s\n", home);
-
-    C("bash", "./bashscript.sh"); RUN
-
-    // InitWindow(1920, 1080, "Raylib Template");
     int screenX = 1280;
     int screenY = 720;
-    InitWindow(screenX, screenY, "rl");
+    InitWindow(screenX, screenY, "creaturettes");
     SetTargetFPS(FPS_COEF * 60);
     SetExitKey(KEY_ESCAPE);
     // ToggleFullscreen();
