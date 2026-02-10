@@ -24,7 +24,11 @@ int main(int argc, byte **argv) {
             return 1;
         }
     }
-int nr = nob_needs_rebuild1("main.exe", "main.c");
+#ifdef _WIN32
+    const int nr = nob_needs_rebuild1("main.exe", "main.c");
+#else // _WIN32
+    const int nr = nob_needs_rebuild1("main", "main.c");
+#endif // _WIN32
     if (nr < 0) return 1;
 
     if (nr || flag_force) {
@@ -33,6 +37,7 @@ int nr = nob_needs_rebuild1("main.exe", "main.c");
 // #define ZIGCC_OVER_GCC
 
 #ifdef ZIGCC_OVER_GCC
+
         C("zig", "cc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -48,7 +53,11 @@ int nr = nob_needs_rebuild1("main.exe", "main.c");
 // gcc -Wall -Wextra -std=c99 \
 // -I./raylib-5.5_win64_mingw-w64/include/ -DRELEASE -o main main.c \
 // -L./raylib-5.5_win64_mingw-w64/lib/ -Xlinker -static -l:libraylib.a -lraylib -lraylib -lgdi32 -lwinmm -lm
+
 #else // ZIGCC_OVER_GCC
+
+    #ifdef _WIN32
+
         C("gcc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -59,12 +68,30 @@ int nr = nob_needs_rebuild1("main.exe", "main.c");
         C("-L./raylib-5.5_win64_mingw-w64/lib/");
         C("-lraylib", "-lgdi32", "-lwinmm");
         RUN
+
+    #else // _WIN32
+
+        C("gcc");
+        C("-Wall", "-Wextra");
+        C("-std=c99");
+        C("-I./raylib-5.5_linux_amd64/include/");
+        // C("-DRELEASE");
+        C("-o", "main");
+        C("main.c");
+        C("-L./raylib-5.5_linux_amd64/lib/");
+        C("-l:libraylib.a", "lm");
+        RUN
+
+    #endif // _WIN32
+
 #endif // ZIGCC_OVER_GCC
+
     }
 
     C("./main"); RUN //, Forrest, Run!
 
     return 0;
+
 cmd_failed: // joking, bro
     printf("\e[1;31m ^\e[m Last Command Failed!\n");
     return 1;
