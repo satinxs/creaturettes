@@ -2,6 +2,8 @@
 #define NOB_STRIP_PREFIX
 #include "nob.h"
 
+#define SRC_DIR "src/"
+
 typedef char byte;
 
 //@hoist
@@ -25,9 +27,9 @@ int main(int argc, byte **argv) {
         }
     }
 #ifdef _WIN32
-    const int nr = nob_needs_rebuild1("main.exe", "main.c");
+    const int nr = nob_needs_rebuild1("main.exe", SRC_DIR"main.c");
 #else // _WIN32
-    const int nr = nob_needs_rebuild1("main", "main.c");
+    const int nr = nob_needs_rebuild1("main", SRC_DIR"main.c");
 #endif // _WIN32
     if (nr < 0) return 1;
 
@@ -44,7 +46,7 @@ int main(int argc, byte **argv) {
         C("-I./raylib-5.5_win64_msvc16/include/");
         // C("-DRELEASE");
         C("-o", "main.exe");
-        C("main.c");
+        C(SRC_DIR"main.c");
         C("-L./raylib-5.5_win64_msvc16/lib/");
         C("-lraylib", "-lgdi32", "-lwinmm");
         C("-lopengl32"); // not needed in gcc apparently
@@ -64,7 +66,7 @@ int main(int argc, byte **argv) {
         C("-I./raylib-5.5_win64_mingw-w64/include/");
         // C("-DRELEASE");
         C("-o", "main.exe");
-        C("main.c");
+        C(SRC_DIR"main.c");
         C("-L./raylib-5.5_win64_mingw-w64/lib/");
         C("-lraylib", "-lgdi32", "-lwinmm");
         RUN
@@ -77,7 +79,7 @@ int main(int argc, byte **argv) {
         C("-I./raylib-5.5_linux_amd64/include/");
         // C("-DRELEASE");
         C("-o", "main");
-        C("main.c");
+        C(SRC_DIR"main.c");
         C("-L./raylib-5.5_linux_amd64/lib/");
         C("-l:libraylib.a", "lm");
         RUN

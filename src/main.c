@@ -41,7 +41,9 @@
 #define CELL_COUNT 2500
 #define FPS_COEF 2
 #define TIME_COEF 2
-#define MAP_CIRCULAR_SIZE (1920 / 2)
+// #define MAP_CIRCULAR_SIZE (1920 / 2)
+// float MAP_CIRCULAR_SIZE = 300 / 2;
+float MAP_CIRCULAR_SIZE = 1920 / 2;
 
 /// Structs
 
@@ -138,7 +140,7 @@ bool game_update() {
         // Collision detection w/Walls
 #define PEDO
 #ifdef PEDO
-        const float map_rad = 1920 / 2;
+        const float map_rad = MAP_CIRCULAR_SIZE;
 
         // if (Vector2Distance(c->pos, center) + c->rad > map_rad) {
         //     // set position to the map circular border minus radius, making it touch the border
@@ -369,10 +371,14 @@ int main(void) {
             show_debug_info = !show_debug_info;
         }
 
-        if (IsKeyPressed(KEY_F)) {
+        if (gogo && IsKeyPressed(KEY_F)) {
             for (int i = 0; i < 1000; i++) {
                 game_update();
             }
+        }
+
+        if (gogo && IsKeyPressed(KEY_J)) {
+            MAP_CIRCULAR_SIZE = 1920 / 2;
         }
 
         if (gogo) {
@@ -381,6 +387,11 @@ int main(void) {
 
             if (cycle_pos == 0) game_update(); // GAME !
             game_render();
+        } else {
+            DrawText(
+                "SPACE: Play !\n"
+                "==============", 450, 300, 40, GREEN
+            );
         }
 
         if (show_help) {
@@ -388,10 +399,10 @@ int main(void) {
                 "F1: Help\n"
                 "F8: display Debug Info\n"
 
-                "=========", 30, 60, 20, BLACK
+                "=========", 20, 60, 20, WHITE
             );
         } else {
-            DrawText("F1: Help", 30, 60, 20, BLACK);
+            DrawText("F1: Help", 20, 60, 20, BLACK);
         }
 
         if (show_debug_info) {

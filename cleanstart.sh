@@ -7,4 +7,4 @@ rm ./*.pdb
 
 rm ./nob ./main
 
-cc -o nob nob.c
+cc -o nob src/nob.c
