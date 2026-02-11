@@ -348,6 +348,8 @@ int main(void) {
 
     game_init();
     bool gogo = false;
+    bool show_help = false;
+    bool show_debug_info = false;
 
     int cycle_pos = 0;
 
@@ -358,6 +360,13 @@ int main(void) {
         if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_F11) || ( IsKeyPressed(KEY_ENTER) && IsKeyDown(KEY_LEFT_ALT) )) {
             gogo = !gogo;
             ToggleBorderlessWindowed();
+        }
+
+        if (IsKeyPressed(KEY_F1)) {
+            show_help = !show_help;
+        }
+        if (IsKeyPressed(KEY_F8)) {
+            show_debug_info = !show_debug_info;
         }
 
         if (IsKeyPressed(KEY_F)) {
@@ -374,8 +383,25 @@ int main(void) {
             game_render();
         }
 
+        if (show_help) {
+            DrawText(
+                "F1: Help\n"
+                "F8: display Debug Info\n"
+
+                "=========", 30, 60, 20, BLACK
+            );
+        } else {
+            DrawText("F1: Help", 30, 60, 20, BLACK);
+        }
+
+        if (show_debug_info) {
+            // TODO: render gameplay info like gravity lines etc or whatever
+            DrawText("DEBUGINFOPLACEHOLDER", 120, 60, 20, BLACK);
+        }
+
         DrawText("creaturettes", 30, 30, 20, GREEN);
         DrawFPS(10, 10);
+
         EndDrawing();
     }
     CloseWindow();
