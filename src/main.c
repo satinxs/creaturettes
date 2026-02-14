@@ -8,13 +8,13 @@
 #include <raylib.h>
 #include <raymath.h>
 
-//////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 /// Static Globals
 
-#define FPS_COEF 2 // game fps cap will be 60 * FPS_COEF
-#define TIME_COEF 2 // game update tick happens every this number of frames
-                    // if both are equal, then game is 60 ticks per secons
+#define FPS_COEF 1 // game fps cap will be 60 * FPS_COEF
+#define TIME_COEF 1 // game update tick happens every this number of frames
+                    // if both are equal, then game is 60 ticks per second
 #define TICKS_TO_FREEDOM 1 // ticks until map opens up
 
 // #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
@@ -91,6 +91,7 @@ bool draw_cell(FatStruct c) {
         // DrawCircleV(c.pos, c.as.cell.rad, BLACK);
         DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 200, 60, 45, 64 }); // Maroon modified
                     // #define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
+                    // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
     } else if (c.as.cell.is_colliding_w_cell) {
         DrawCircleV(c.pos, c.as.cell.rad, GOLD);
     } else {
@@ -343,10 +344,22 @@ bool game_update() {
     return true;
 }
 
+bool show_debug_info = false; // TODO: consider putting in Globals top part of the file
+
 bool game_render() {
     for (int i = 0; i < CELL_COUNT; i++) {
         draw_cell(world.cells[i]);
     }
+
+    if (show_debug_info) {
+        // TODO: render gameplay info like gravity lines etc or whatever
+
+#define MAP_CIRCLE_THICKNESS 3
+        DrawRing((Vector2){
+            .x = (1920/2), .y = (1080/2)
+        }, MAP_CIRCULAR_SIZE, MAP_CIRCULAR_SIZE + MAP_CIRCLE_THICKNESS, 0.0f, 360.0f, 128, CLITERAL(Color){ 0, 0, 0, 255 });
+    }
+
     return true;
 }
 
@@ -371,7 +384,7 @@ int main(void) {
     game_init();
     bool gogo = false;
     bool show_help = false;
-    bool show_debug_info = false;
+    // bool show_debug_info = false; // needs to be global! (this variable was moved outdoors)
 
     long long cycle_pos = 0;
 
@@ -386,6 +399,10 @@ int main(void) {
 
         if (IsKeyPressed(KEY_F1)) {
             show_help = !show_help;
+        }
+        if (gogo && IsKeyPressed(KEY_F5)) {
+            memset(&world, 0, sizeof(World));
+            game_init();
         }
         if (IsKeyPressed(KEY_F8)) {
             show_debug_info = !show_debug_info;
@@ -414,19 +431,28 @@ int main(void) {
         }
 
         if (show_help) {
+            // @@ for future use
             DrawText(
+                //@@ of the pre-preprocessor
                 "F1: Help\n"
-                "F8: display Debug Info\n"
+                "ESC: Exit\n"
+                "SPACE | F11 | Alt+ENTER: Play/Pause\n"
+                "F5: Restart Simulation\n"
+                "F8: Display Debug Info\n"
+                "f: fast forward 16 seconds (slow)\n"
 
-                "=========", 20, 60, 20, WHITE
+                , 20, 52, 20, CLITERAL(Color){ 0, 228, 48, (128 + 64 + 32) }
             );
         } else {
-            DrawText("F1: Help", 20, 60, 20, BLACK);
-        }
-
-        if (show_debug_info) {
-            // TODO: render gameplay info like gravity lines etc or whatever
-            DrawText("DEBUGINFOPLACEHOLDER", 120, 60, 20, BLACK);
+            if (gogo) {
+                DrawText(
+                    "F1: Help"
+                    , 20, 52, 20, CLITERAL(Color){ 0, 0, 0, 128 });
+            } else {
+                DrawText(
+                    "F1: Help"
+                    , 20, 52, 20, CLITERAL(Color){ 0, 0, 0, 255 });
+            }
         }
 
         DrawText("creaturettes", 30, 30, 20, GREEN);
