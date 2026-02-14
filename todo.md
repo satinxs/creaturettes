@@ -13,3 +13,5 @@ consumes cells
 animals (?)
 
 rendering
+
+celularam // memory!

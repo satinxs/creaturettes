@@ -1,22 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #!/usr/bin/env -S tcc -run
-
-// #include <stdio.h>
-
-// // celularam
-
-// // typedef struct Vector2 {
-// //     float x;
-// //     float y;
-// // } Vector2;
-
-// int main(int argc, char *argv[]) {
-//     printf("Hello, World!\n");
-//     return 0;
-// }
-
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
 #include "nob.h"
@@ -24,32 +8,36 @@
 #include <raylib.h>
 #include <raymath.h>
 
-// bool sh(char *str, ...) {
-//     static Cmd cmd = {0};
-
-//     cmd.count = 0;
-//     cmd_append(&cmd, str);
-//     return cmd_run_sync(cmd);
-// }
-
-//////////////////////////////////////////////////////////
-/// FUN BEGINS HERE !
-//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////
 
 /// Static Globals
 
+#define FPS_COEF 2 // game fps cap will be 60 * FPS_COEF
+#define TIME_COEF 2 // game update tick happens every this number of frames
+                    // if both are equal, then game is 60 ticks per secons
+#define TICKS_TO_FREEDOM 1 // ticks until map opens up
+
+// #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
+
 #define CELL_COUNT 2500
-#define FPS_COEF 2
-#define TIME_COEF 2
-// #define MAP_CIRCULAR_SIZE (1920 / 2)
-// float MAP_CIRCULAR_SIZE = 300 / 2;
+// #define CELL_COUNT 1000
+#define CELL_HITPOINTS   (1 * 1 * 1024)
+#define CELL_CORPSE_SPAN (1 * 8 * 1024)
+#define CELL_CORPSE_HIT_DAMAGE (32)
+
+// #define SPAWN_PERIOD (10 * 60) // ambitious TODO, make it spawn more cells every so often
+
+// float MAP_CIRCULAR_SIZE = 600 / 2;
 float MAP_CIRCULAR_SIZE = 1920 / 2;
 
 /// Structs
 
 typedef struct {
-    float rad;
     bool is_colliding_w_cell;
+    bool is_dead;
+    bool is_nonexistent;
+    float rad;
+    int hit_counter;
 } Cell;
 
 typedef struct {
@@ -98,7 +86,12 @@ Vector2 center = {
 /// Functions
 
 bool draw_cell(FatStruct c) {
-    if (c.as.cell.is_colliding_w_cell) {
+    if (c.as.cell.is_nonexistent) return true;
+    if (c.as.cell.is_dead) {
+        // DrawCircleV(c.pos, c.as.cell.rad, BLACK);
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 200, 60, 45, 64 }); // Maroon modified
+                    // #define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
+    } else if (c.as.cell.is_colliding_w_cell) {
         DrawCircleV(c.pos, c.as.cell.rad, GOLD);
     } else {
         DrawCircleV(c.pos, c.as.cell.rad, MAROON);
@@ -133,13 +126,15 @@ bool game_update() {
     for (int i = 0; i < CELL_COUNT; i++) {
         FatStruct *c = &world.cells[i];
 
+        if (c->as.cell.is_nonexistent) continue; // The bigger continue!
+
         // Movement
         c->pos.x += c->vel.x;
         c->pos.y += c->vel.y;
 
         // Collision detection w/Walls
-#define PEDO
-#ifdef PEDO
+#define USE_CIRCULAR_MAP // temporary variable to switch to a circular map
+#ifdef USE_CIRCULAR_MAP
         const float map_rad = MAP_CIRCULAR_SIZE;
 
         // if (Vector2Distance(c->pos, center) + c->rad > map_rad) {
@@ -182,7 +177,7 @@ bool game_update() {
             }
         }
 
-#else
+#else // USE_CIRCULAR_MAP
         // Collision detection w/Walls
         if (c->pos.x - c->rad <= 0) {
             c->pos.x = c->rad;
@@ -203,7 +198,13 @@ bool game_update() {
             c->pos.y = H - c->rad;
             c->vel.y = -c->vel.y;
         }
-#endif // PEDO
+#endif // USE_CIRCULAR_MAP
+
+        if (c->as.cell.is_dead) { // The big continue!
+            c->as.cell.hit_counter += 1;
+            continue;
+        }
+
         c->as.cell.is_colliding_w_cell = false;
 
         // Collision detection w/Cells
@@ -211,6 +212,8 @@ bool game_update() {
             FatStruct *c2 = &world.cells[j];
 
             if (i == j) continue; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            if (c2->as.cell.is_nonexistent) continue; // The third big continue!
 
             // get distance squared
             float dx = c->pos.x - c2->pos.x;
@@ -224,6 +227,23 @@ bool game_update() {
             // check
             if (dist_squared < rad_sum_squared) {
                 c->as.cell.is_colliding_w_cell = true;
+                c->as.cell.hit_counter += 1;
+
+                if ( ! c->as.cell.is_dead) { // alive still // unnecessary check
+                    if (c->as.cell.hit_counter >= CELL_HITPOINTS) {
+                        c->as.cell.hit_counter = 0;
+                        c->as.cell.is_dead = true;
+                    }
+                }
+
+                // turned out to be the alive cell's responsibility
+                // to "ripe" the dead cell when colliding
+                if (c2->as.cell.is_dead) {
+                    c2->as.cell.hit_counter += CELL_CORPSE_HIT_DAMAGE;
+                    if (c2->as.cell.hit_counter >= CELL_CORPSE_SPAN) {
+                        c2->as.cell.is_nonexistent = true;
+                    }
+                }
 
                 float dist = sqrtf(dist_squared);
                 if (dist == 0.0f) dist = 0.01f; // Avoid div by zero
@@ -353,7 +373,7 @@ int main(void) {
     bool show_help = false;
     bool show_debug_info = false;
 
-    int cycle_pos = 0;
+    long long cycle_pos = 0;
 
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -377,15 +397,14 @@ int main(void) {
             }
         }
 
-        if (gogo && IsKeyPressed(KEY_J)) {
+        if (gogo && (cycle_pos == (TICKS_TO_FREEDOM * FPS_COEF) || IsKeyPressed(KEY_J))) {
             MAP_CIRCULAR_SIZE = 1920 / 2;
         }
 
         if (gogo) {
             cycle_pos += 1;
-            cycle_pos %= TIME_COEF;
 
-            if (cycle_pos == 0) game_update(); // GAME !
+            if ((cycle_pos % TIME_COEF) == 0) game_update(); // GAME !
             game_render();
         } else {
             DrawText(
