@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <raylib.h>
+#include <raymath.h>
+
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
 #include "nob.h"
-
-#include <raylib.h>
-#include <raymath.h>
 
 ////////////////////////////////////////////////////////////
 
@@ -19,11 +19,22 @@
 
 // #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
 
-#define CELL_COUNT 2500
-// #define CELL_COUNT 1000
+#define CELL_COUNT 1000
+// #define CELL_COUNT 2500
+// #define CELL_COUNT 3500
+// #define CELL_COUNT 4500
+// #define CELL_COUNT 6000
+
+// Stable (short-lived cells as per prototype_build_001)
+// DO NOT modify/delete. copy it instead.
 #define CELL_HITPOINTS   (1 * 1 * 1024)
 #define CELL_CORPSE_SPAN (1 * 8 * 1024)
 #define CELL_CORPSE_HIT_DAMAGE (32)
+
+// experimental (?)
+#define CELL_HITPOINTS   (1 * 8 * 1024)
+#define CELL_CORPSE_SPAN (2 * 8 * 1024)
+#define CELL_CORPSE_HIT_DAMAGE (32+16)
 
 // #define SPAWN_PERIOD (10 * 60) // ambitious TODO, make it spawn more cells every so often
 
@@ -83,19 +94,52 @@ Vector2 center = {
     .y = 1080 / 2,
 };
 
+typedef enum {
+    PARTY_MODE_INIT = 0,
+    PARTY_MODE_FIRE,
+    PARTY_MODE_VLUE,
+    PARTY_MODE_CLOWN,
+} PartyMode;
+
+PartyMode party_mode = 1;
+
 /// Functions
+
+char party_color_calculate(char base_color, float bright_factor, char brightness, float rad) {
+    switch (party_mode) {
+    case PARTY_MODE_INIT:
+        return base_color;
+    case PARTY_MODE_FIRE:
+        return base_color + ((250 - base_color) * brightness * bright_factor / 20); // flame!
+    case PARTY_MODE_VLUE:
+        return base_color + ((250 - base_color) * brightness / 20); // Vlue Vlask
+    case PARTY_MODE_CLOWN:
+        return base_color + ((GetRandomValue(0, (250 - base_color))) * rad); // CLOWN !!!!!!!!
+    default:
+        return base_color;
+    }
+}
 
 bool draw_cell(FatStruct c) {
     if (c.as.cell.is_nonexistent) return true;
     if (c.as.cell.is_dead) {
-        // DrawCircleV(c.pos, c.as.cell.rad, BLACK);
-        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 200, 60, 45, 64 }); // Maroon modified
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 130, 50, 10, 64 });
+        // DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 200, 60, 45, 64 }); // Maroon modified
                     // #define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
                     // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
     } else if (c.as.cell.is_colliding_w_cell) {
-        DrawCircleV(c.pos, c.as.cell.rad, GOLD);
+        // DrawCircleV(c.pos, c.as.cell.rad, GOLD);
+                    // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
+        const char brightness = GetRandomValue(1, (21 - c.as.cell.rad));
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){
+            party_color_calculate(190, 0.2f, brightness, c.as.cell.rad),
+            party_color_calculate(43, 0.6f, brightness, c.as.cell.rad),
+            party_color_calculate(45, 0.0f, brightness, c.as.cell.rad),
+            255
+        });
     } else {
-        DrawCircleV(c.pos, c.as.cell.rad, MAROON);
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 160, 42, 40, 255 });
+                    // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
     }
     return true;
 }
@@ -414,9 +458,16 @@ int main(void) {
             }
         }
 
-        if (gogo && (cycle_pos == (TICKS_TO_FREEDOM * FPS_COEF) || IsKeyPressed(KEY_J))) {
-            MAP_CIRCULAR_SIZE = 1920 / 2;
+        if (gogo) {
+            if      (IsKeyPressed(KEY_ZERO )) party_mode = 0;
+            else if (IsKeyPressed(KEY_ONE  )) party_mode = 1;
+            else if (IsKeyPressed(KEY_TWO  )) party_mode = 2;
+            else if (IsKeyPressed(KEY_THREE)) party_mode = 3;
         }
+
+        // if (gogo && (cycle_pos == (TICKS_TO_FREEDOM * FPS_COEF) || IsKeyPressed(KEY_J))) {
+        //     MAP_CIRCULAR_SIZE = 1920 / 2;
+        // }
 
         if (gogo) {
             cycle_pos += 1;

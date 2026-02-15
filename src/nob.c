@@ -19,7 +19,7 @@ int main(int argc, byte **argv) {
     const char *program_name = shift(argv, argc);
     while (argc > 0) {
         const char *flag = shift(argv, argc);
-        if (!strcmp(flag, "f")) {
+        if ((!strcmp(flag, "f")) || (!strcmp(flag, "-f"))) {
             flag_force = true;
         } else {
             printf("Unknown flag: %s\n", flag);
