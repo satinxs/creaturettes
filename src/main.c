@@ -12,28 +12,30 @@
 
 /// Static Globals
 
-#define FPS_COEF 1 // game fps cap will be 60 * FPS_COEF
+#define FPS_COEF 5 // game fps cap will be 60 * FPS_COEF
 #define TIME_COEF 1 // game update tick happens every this number of frames
                     // if both are equal, then game is 60 ticks per second
 #define TICKS_TO_FREEDOM 1 // ticks until map opens up
 
 // #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
 
-#define CELL_COUNT 1000
-// #define CELL_COUNT 2500
+#define PARTICELL_STARTING_VELOCITY 600.0f
+
+// #define CELL_COUNT 1000
+#define CELL_COUNT 2500
 // #define CELL_COUNT 3500
 // #define CELL_COUNT 4500
 // #define CELL_COUNT 6000
 
-// Stable (short-lived cells as per prototype_build_001)
-// DO NOT modify/delete. copy it instead.
-#define CELL_HITPOINTS   (1 * 1 * 1024)
-#define CELL_CORPSE_SPAN (1 * 8 * 1024)
-#define CELL_CORPSE_HIT_DAMAGE (32)
+// // Stable (short-lived cells as per prototype_build_001)
+// // DO NOT modify/delete
+// #define CELL_HITPOINTS   (1 * 1 * 1024)
+// #define CELL_CORPSE_SPAN (1 * 8 * 1024)
+// #define CELL_CORPSE_HIT_DAMAGE (32)
 
 // experimental (?)
-#define CELL_HITPOINTS   (1 * 8 * 1024)
-#define CELL_CORPSE_SPAN (2 * 8 * 1024)
+#define CELL_HITPOINTS   (2 * 8 * 1024)
+#define CELL_CORPSE_SPAN (4 * 8 * 1024)
 #define CELL_CORPSE_HIT_DAMAGE (32+16)
 
 // #define SPAWN_PERIOD (10 * 60) // ambitious TODO, make it spawn more cells every so often
@@ -121,9 +123,16 @@ char party_color_calculate(char base_color, float bright_factor, char brightness
 }
 
 bool draw_cell(FatStruct c) {
+
+    const float distance_to_center = Vector2Length((Vector2){
+        .x = c.pos.x - center.x,
+        .y = c.pos.y - center.y,
+    });
+    const float opacity = 0.9f * (MAP_CIRCULAR_SIZE - distance_to_center) / MAP_CIRCULAR_SIZE;
+
     if (c.as.cell.is_nonexistent) return true;
     if (c.as.cell.is_dead) {
-        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 130, 50, 10, 64 });
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 130, 50, 10, opacity * 64 });
         // DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 200, 60, 45, 64 }); // Maroon modified
                     // #define GOLD       CLITERAL(Color){ 255, 203, 0, 255 }     // Gold
                     // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
@@ -135,10 +144,10 @@ bool draw_cell(FatStruct c) {
             party_color_calculate(190, 0.2f, brightness, c.as.cell.rad),
             party_color_calculate(43, 0.6f, brightness, c.as.cell.rad),
             party_color_calculate(45, 0.0f, brightness, c.as.cell.rad),
-            255
+            opacity * 255
         });
     } else {
-        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 160, 42, 40, 255 });
+        DrawCircleV(c.pos, c.as.cell.rad, CLITERAL(Color){ 160, 42, 40, opacity * 255 });
                     // #define MAROON     CLITERAL(Color){ 190, 33, 55, 255 }     // Maroon
     }
     return true;
@@ -155,8 +164,11 @@ bool game_init() {
         c->pos.x = GetRandomValue(100, W - 100);
         c->pos.y = GetRandomValue(100, H - 100);
 
-        c->vel.x = GetRandomValue(-5.0f, 5.0f);
-        c->vel.y = GetRandomValue(-5.0f, 5.0f);
+        // c->vel.x = GetRandomValue(-5.0f, 5.0f);
+        // c->vel.y = GetRandomValue(-5.0f, 5.0f);
+
+        c->vel.x = GetRandomValue(-PARTICELL_STARTING_VELOCITY, PARTICELL_STARTING_VELOCITY);
+        c->vel.y = GetRandomValue(-PARTICELL_STARTING_VELOCITY, PARTICELL_STARTING_VELOCITY);
 
         c->as.cell.rad = GetRandomValue(1, 20);
     }
