@@ -15,6 +15,7 @@
 #define FPS_COEF 5 // game fps cap will be 60 * FPS_COEF
 #define TIME_COEF 1 // game update tick happens every this number of frames
                     // if both are equal, then game is 60 ticks per second
+#define RESET_TIME (1 * 1024) // these ticks and auto-reset if enabled
 #define TICKS_TO_FREEDOM 1 // ticks until map opens up
 
 // #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
@@ -91,6 +92,7 @@ typedef struct {
 /// Dynamic Globals
 
 World world = {0};
+
 Vector2 center = {
     .x = 1920 / 2,
     .y = 1080 / 2,
@@ -104,6 +106,8 @@ typedef enum {
 } PartyMode;
 
 PartyMode party_mode = 1;
+
+int timer = 0;
 
 /// Functions
 
@@ -158,6 +162,9 @@ bool game_init() {
     // int H = GetScreenHeight();
     int W = 1920;
     int H = 1080;
+
+    memset(&world, 0, sizeof(World));
+
     for (int i = 0; i < CELL_COUNT; i++) {
         FatStruct *c = &world.cells[i];
 
@@ -428,8 +435,15 @@ int main(void) {
     printf("No Release!\n");
 #endif // RELEASE
 
+    /// Globals Main:
+
+    bool reset_enabled = true;
+
     int screenX = 1280;
     int screenY = 720;
+
+    /// 2D Starts:
+
     InitWindow(screenX, screenY, "creaturettes");
     SetTargetFPS(FPS_COEF * 60);
     SetExitKey(KEY_ESCAPE);
@@ -448,6 +462,12 @@ int main(void) {
         BeginDrawing();
         ClearBackground(DARKBROWN);
 
+        timer += 1;
+        if (reset_enabled && (timer > RESET_TIME)) {
+            timer = 0;
+            game_init();
+        }
+
         if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_F11) || ( IsKeyPressed(KEY_ENTER) && IsKeyDown(KEY_LEFT_ALT) )) {
             gogo = !gogo;
             ToggleBorderlessWindowed();
@@ -457,7 +477,6 @@ int main(void) {
             show_help = !show_help;
         }
         if (gogo && IsKeyPressed(KEY_F5)) {
-            memset(&world, 0, sizeof(World));
             game_init();
         }
         if (IsKeyPressed(KEY_F8)) {
@@ -516,6 +535,13 @@ int main(void) {
                     "F1: Help"
                     , 20, 52, 20, CLITERAL(Color){ 0, 0, 0, 255 });
             }
+        }
+
+        char timer_display[32] = {0};
+        sprintf(timer_display, "%3d", timer);
+
+        if (show_debug_info) {
+            DrawText(timer_display, 180, 30, 20, CLITERAL(Color){ 0, 126, 100, 255 });
         }
 
         DrawText("creaturettes", 30, 30, 20, GREEN);
