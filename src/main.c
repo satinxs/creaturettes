@@ -15,12 +15,10 @@
 #define FPS_COEF 5 // game fps cap will be 60 * FPS_COEF
 #define TIME_COEF 1 // game update tick happens every this number of frames
                     // if both are equal, then game is 60 ticks per second
-#define RESET_TIME (1 * 1024) // these ticks and auto-reset if enabled
+#define RESET_TIME (3 * 1024) // these ticks and auto-reset if enabled
 #define TICKS_TO_FREEDOM 1 // ticks until map opens up
 
 // #define MAP_CIRCULAR_SIZE (1920 / 2) // overridden by the float below for now (temporary)
-
-#define PARTICELL_STARTING_VELOCITY 600.0f
 
 // #define CELL_COUNT 1000
 #define CELL_COUNT 2500
@@ -28,16 +26,26 @@
 // #define CELL_COUNT 4500
 // #define CELL_COUNT 6000
 
-// // Stable (short-lived cells as per prototype_build_001)
-// // DO NOT modify/delete
-// #define CELL_HITPOINTS   (1 * 1 * 1024)
-// #define CELL_CORPSE_SPAN (1 * 8 * 1024)
-// #define CELL_CORPSE_HIT_DAMAGE (32)
+// Stable (short-lived cells as per prototype_build_001)
+// DO NOT modify/delete
+#define PARTICELL_STARTING_VELOCITY 5.0f
+#define CELL_HITPOINTS   (1 * 1 * 1024)
+#define CELL_CORPSE_SPAN (1 * 8 * 1024)
+#define CELL_CORPSE_HIT_DAMAGE (32)
+// #define CELL_HITPOINTS   (4 * 8 * 1024)
+// #define CELL_CORPSE_SPAN (2 * 8 * 1024)
+// #define CELL_CORPSE_HIT_DAMAGE (32+16)
+
+#ifdef EXPERIMENTAL
 
 // experimental (?)
+#define RESET_TIME (1 * 1536) // these ticks and auto-reset if enabled
+#define PARTICELL_STARTING_VELOCITY 600.0f
 #define CELL_HITPOINTS   (2 * 8 * 1024)
 #define CELL_CORPSE_SPAN (4 * 8 * 1024)
 #define CELL_CORPSE_HIT_DAMAGE (32+16)
+
+#endif // EXPERIMENTAL
 
 // #define SPAWN_PERIOD (10 * 60) // ambitious TODO, make it spawn more cells every so often
 
@@ -489,6 +497,10 @@ int main(void) {
             }
         }
 
+        if (IsKeyPressed(KEY_R)) {
+            reset_enabled = !reset_enabled;
+        }
+
         if (gogo) {
             if      (IsKeyPressed(KEY_ZERO )) party_mode = 0;
             else if (IsKeyPressed(KEY_ONE  )) party_mode = 1;
@@ -519,8 +531,9 @@ int main(void) {
                 "F1: Help\n"
                 "ESC: Exit\n"
                 "SPACE | F11 | Alt+ENTER: Play/Pause\n"
-                "F5: Restart Simulation\n"
+                "F5: Reset Simulation\n"
                 "F8: Display Debug Info\n"
+                "r: reset on-off\n"
                 "f: fast forward 16 seconds (slow)\n"
 
                 , 20, 52, 20, CLITERAL(Color){ 0, 228, 48, (128 + 64 + 32) }
@@ -538,10 +551,16 @@ int main(void) {
         }
 
         char timer_display[32] = {0};
-        sprintf(timer_display, "%3d", timer);
+        sprintf(timer_display, "t%3d", timer);
 
         if (show_debug_info) {
             DrawText(timer_display, 180, 30, 20, CLITERAL(Color){ 0, 126, 100, 255 });
+
+            if (reset_enabled) {
+                DrawText("reset_on",  180, 6, 20, CLITERAL(Color){  12, 196, 120, 255 });
+            } else {
+                DrawText("reset_off", 180, 6, 20, CLITERAL(Color){ 220,  50,  20, 255 });
+            }
         }
 
         DrawText("creaturettes", 30, 30, 20, GREEN);

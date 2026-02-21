@@ -43,7 +43,7 @@ int main(int argc, byte **argv) {
 // #define ZIGCC_OVER_GCC
 
 #ifdef ZIGCC_OVER_GCC
-	#ifdef _WIN32
+    #ifdef _WIN32
         announce_build_method("zig cc", "Windows");
         C("zig", "cc");
         C("-Wall", "-Wextra");
@@ -57,7 +57,7 @@ int main(int argc, byte **argv) {
         C("-lopengl32"); // not needed in gcc apparently
         C("-luser32", "-lshell32", "-lkernel32");
         RUN
-	#else //Linux boi
+    #else //Linux boi
         announce_build_method("zig cc", "Linux");
         C("zig", "cc");
         C("-Wall", "-Wextra");
@@ -69,8 +69,8 @@ int main(int argc, byte **argv) {
         C("-Lraylib-5.5_linux_amd64/lib");
         C("-lraylib", "-lm");
         RUN
-	#endif
-		
+    #endif
+
 // gcc -Wall -Wextra -std=c99 \
 // -I./raylib-5.5_win64_mingw-w64/include/ -DRELEASE -o main main.c \
 // -L./raylib-5.5_win64_mingw-w64/lib/ -Xlinker -static -l:libraylib.a -lraylib -lraylib -lgdi32 -lwinmm -lm
@@ -83,11 +83,24 @@ int main(int argc, byte **argv) {
         C("-std=c99");
         C("-I./raylib-5.5_win64_mingw-w64/include/");
         // C("-DRELEASE");
+        C("-DEXPERIMENTAL");
         C("-o", "main.exe");
         C(SRC_DIR"main.c");
         C("-L./raylib-5.5_win64_mingw-w64/lib/");
         C("-lraylib", "-lgdi32", "-lwinmm");
         RUN
+
+        C("gcc");
+        C("-Wall", "-Wextra");
+        C("-std=c99");
+        C("-I./raylib-5.5_win64_mingw-w64/include/");
+        // C("-DRELEASE");
+        C("-o", "ignoreddir/main.exe");
+        C(SRC_DIR"main.c");
+        C("-L./raylib-5.5_win64_mingw-w64/lib/");
+        C("-lraylib", "-lgdi32", "-lwinmm");
+        RUN
+
     #else // _WIN32
         announce_build_method("gcc", "Linux");
         C("gcc");
