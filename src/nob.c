@@ -39,7 +39,8 @@ int main(int argc, byte **argv) {
 // #define ZIGCC_OVER_GCC
 
 #ifdef ZIGCC_OVER_GCC
-
+	#ifdef _WIN32
+		printf("Building using zig cc in Windows:\n");
         C("zig", "cc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -52,14 +53,27 @@ int main(int argc, byte **argv) {
         C("-lopengl32"); // not needed in gcc apparently
         C("-luser32", "-lshell32", "-lkernel32");
         RUN
+	#else //Linux boi
+		printf("Building using zig cc in Linux:\n");
+        C("zig", "cc");
+        C("-Wall", "-Wextra");
+        C("-std=gnu99");
+        C("-Iraylib-5.5_linux_amd64/include");
+        // C("-DRELEASE");
+        C("-o", "main");
+        C(SRC_DIR"main.c");
+        C("-Lraylib-5.5_linux_amd64/lib");
+        C("-lraylib", "-lm");
+        RUN
+	#endif
+		
 // gcc -Wall -Wextra -std=c99 \
 // -I./raylib-5.5_win64_mingw-w64/include/ -DRELEASE -o main main.c \
 // -L./raylib-5.5_win64_mingw-w64/lib/ -Xlinker -static -l:libraylib.a -lraylib -lraylib -lgdi32 -lwinmm -lm
 
 #else // ZIGCC_OVER_GCC
-
     #ifdef _WIN32
-
+		printf("Building using gcc in Windows:\n");
         C("gcc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -70,24 +84,20 @@ int main(int argc, byte **argv) {
         C("-L./raylib-5.5_win64_mingw-w64/lib/");
         C("-lraylib", "-lgdi32", "-lwinmm");
         RUN
-
     #else // _WIN32
-
+		printf("Building using gcc in Linux:\n");
         C("gcc");
         C("-Wall", "-Wextra");
-        C("-std=c99");
+        C("-std=gnu99");
         C("-I./raylib-5.5_linux_amd64/include/");
         // C("-DRELEASE");
         C("-o", "main");
         C(SRC_DIR"main.c");
         C("-L./raylib-5.5_linux_amd64/lib/");
-        C("-l:libraylib.a", "lm");
+        C("-l:libraylib.a", "-lm");
         RUN
-
     #endif // _WIN32
-
 #endif // ZIGCC_OVER_GCC
-
     }
 
     C("./main"); RUN //, Forrest, Run!
