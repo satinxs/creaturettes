@@ -6,6 +6,10 @@
 
 typedef char byte;
 
+void announce_build_method(char *compiler, char *os) {
+    printf("\e[1;31m Compiling: \e[1;34m%s\e[m on \e[1;32m%s\e[m:\n", compiler, os);
+}
+
 //@hoist
 int main(int argc, byte **argv) {
     NOB_GO_REBUILD_URSELF(argc, argv);
@@ -40,7 +44,7 @@ int main(int argc, byte **argv) {
 
 #ifdef ZIGCC_OVER_GCC
 	#ifdef _WIN32
-		printf("Building using zig cc in Windows:\n");
+        announce_build_method("zig cc", "Windows");
         C("zig", "cc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -54,7 +58,7 @@ int main(int argc, byte **argv) {
         C("-luser32", "-lshell32", "-lkernel32");
         RUN
 	#else //Linux boi
-		printf("Building using zig cc in Linux:\n");
+        announce_build_method("zig cc", "Linux");
         C("zig", "cc");
         C("-Wall", "-Wextra");
         C("-std=gnu99");
@@ -73,7 +77,7 @@ int main(int argc, byte **argv) {
 
 #else // ZIGCC_OVER_GCC
     #ifdef _WIN32
-		printf("Building using gcc in Windows:\n");
+        announce_build_method("gcc", "Windows");
         C("gcc");
         C("-Wall", "-Wextra");
         C("-std=c99");
@@ -85,7 +89,7 @@ int main(int argc, byte **argv) {
         C("-lraylib", "-lgdi32", "-lwinmm");
         RUN
     #else // _WIN32
-		printf("Building using gcc in Linux:\n");
+        announce_build_method("gcc", "Linux");
         C("gcc");
         C("-Wall", "-Wextra");
         C("-std=gnu99");
