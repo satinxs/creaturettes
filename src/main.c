@@ -1,12 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include <raylib.h>
 #include <raymath.h>
-
-#define NOB_IMPLEMENTATION
-#define NOB_STRIP_PREFIX
-#include "nob.h"
 
 ////////////////////////////////////////////////////////////
 
